@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cygnus
+  namespace: fiware
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: cygnus
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: cygnus
+          servicePort: 5050
+      - path: /admin
+        backend:
+          serviceName: cygnus
+          servicePort: 8081

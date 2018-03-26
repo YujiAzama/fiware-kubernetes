@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: cepheus
+  namespace: fiware
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: cepheus-cep
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: cepheus
+          servicePort: 8080
+# Conflict with admin port of Cygnus.
+#  - host: cepheus-broker
+#    http:
+#      paths:
+#      - path: /
+#        backend:
+#          serviceName: cepheus
+#          servicePort: 8081

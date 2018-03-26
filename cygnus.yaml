@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cygnus-config
+  namespace: fiware
+data:
+  cygnus.mongo.hosts: "sth-comet-service.fiware.svc.cluster.local:27017"
+  cygnus.mongo.user: ""
+  cygnus.mongo.pass: ""
+  cygnus.mysql.host: "cygnus-mysql.fiware.svc.cluster.local"
+  cygnus.mysql.user: "root"
+  mysql.root.password: "mysql"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cygnus
+  namespace: fiware
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cygnus
+  template:
+    metadata:
+      labels:
+        app: cygnus
+    spec:
+      containers:
+      - name: cygnus
+        image: fiware/cygnus-ngsi:1.7.1
+        ports:
+        - containerPort: 5050
+        - containerPort: 8081
+        env:
+        - name: CYGNUS_MYSQL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: cygnus-config
+              key: cygnus.mysql.host
+        - name: CYGNUS_MYSQL_USER
+          valueFrom:
+            configMapKeyRef:
+              name: cygnus-config
+              key: cygnus.mysql.user
+        - name: CYGNUS_MONGO_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: cygnus-config
+              key: cygnus.mongo.hosts
+        - name: CYGNUS_MONGO_USER
+          valueFrom:
+            configMapKeyRef:
+              name: cygnus-config
+              key: cygnus.mongo.user
+        - name: CYGNUS_MONGO_PASS
+          valueFrom:
+            configMapKeyRef:
+              name: cygnus-config
+              key: cygnus.mongo.pass
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cygnus-mysql
+  namespace: fiware
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: cygnus-mysql
+  template:
+    metadata:
+      labels:
+        name: cygnus-mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.5
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: cygnus-config
+              key: mysql.root.password
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cygnus-mysql
+  namespace: fiware
+spec:
+  selector:
+    name: cygnus-mysql
+  type: ClusterIP
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cygnus
+  namespace: fiware
+spec:
+  selector:
+    app: cygnus
+  type: NodePort
+  ports:
+  - port: 5050
+    protocol: TCP
+    targetPort: 5050
+    nodePort: 30001
+    name: cygnus-port
+  - port: 8081
+    protocol: TCP
+    targetPort: 8081
+    nodePort: 30002
+    name: cygnus-management-port

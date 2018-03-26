@@ -1,0 +1,112 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: comet-config
+  namespace: fiware
+data:
+  sth.host: "0.0.0.0"
+  db.username: ""
+  db.password: ""
+  db.uri: "comet-mongodb.fiware.svc.cluster.local"
+  logops.level: "DEBUG"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comet
+  namespace: fiware
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: comet
+  template:
+    metadata:
+      labels:
+        app: comet
+    spec:
+      containers:
+      - name: comet
+        image: fiware/sth-comet:2.3.0
+        ports:
+        - containerPort: 8666
+        env:
+        - name: STH_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: comet-config
+              key: sth.host
+        - name: DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: comet-config
+              key: db.username
+        - name: DB_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: comet-config
+              key: db.password
+        - name: DB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: comet-config
+              key: db.uri
+        - name: LOGOPS_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: comet-config
+              key: logops.level
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: comet-mongodb
+  namespace: fiware
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: comet-mongodb
+  template:
+    metadata:
+      labels:
+        name: comet-mongodb
+    spec:
+      containers:
+      - name: comet-mongodb
+        image: mongo:3.2
+        ports:
+        - containerPort: 27017
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: comet-mongodb
+  namespace: fiware
+spec:
+  selector:
+    name: comet-mongodb
+  type: ClusterIP
+  ports:
+  - name: comet-mongodb-port
+    port: 27017
+    protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: comet
+  namespace: fiware
+spec:
+  selector:
+    app: comet
+  type: NodePort
+  ports:
+  - port: 8666
+    protocol: TCP
+    targetPort: 8666
+    nodePort: 30003
